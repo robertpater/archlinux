@@ -1,0 +1,266 @@
+https://www.youtube.com/watch?v=SfnsmL72K-g
+
+czy jest net
+
+ping google.pl
+
+fdisk -l
+
+fdisk /dev/sda
+p - print
+g - gtk table |  na filmie uzywa dos cfdisk oraz dos table
+n - new
+p - primary
+default start
+default end
+
+(no swap one part)
+
+w - write
+
+mkfs.ext4 /dev/sda1
+
+
+mount /dev/sda1 /mnt
+
+
+##
+#
+#
+#w przykladzie robi 3 partycje
+#sda1 - bootowalna flaga- 1GB Linux
+#sda2 - 2GB swap
+#sda3 - reszta Linux
+#
+#mkfs.ext4 /dev/sda1
+#mkswap /dev/sda2
+#swapon /dev/sda2
+#mkfs.ext4 /dev/sda3
+#
+# mount /dev/sda3 /mnt
+# mkdir /mnt/boot /mnt/var /mnt/home
+# mount /dev/sda1 /mnt/boot
+# 
+# i dopiero pacstrap
+
+
+pacstrap /mnt base base-devel
+pacstrap /mnt grub-bios
+genfstab -p /mnt >> /mnt/etc/fstab
+
+arch-chroot /mnt /bin/bash
+
+nano /etc/locale.gen
+(unmark US.UTF-8)
+
+locale-gen
+
+echo LANG=en_US.UTF-8 > /etc/locale.conf
+export LANG=en_US.UTF-8
+
+rm -rf /etc/localtime
+ln -s /usr/share/zoneinfo/Europe/Warsaw /etc/localtime
+
+hwclock --systohc --utc
+echo arch2017deepin > /etc/hostname
+
+systemctl enable dhcpcd.service
+
+pacman -Sy openssh
+
+systemctl enable sshd.service
+
+passwd root
+
+useradd -m -g users -G wheel -s /bin/bash rob
+passwd rob
+nano /etc/sudoers
+(skopiuj root ALL)
+zmien root na rob zapisz
+
+#grub-install /dev/sda
+#grub nie poszlo - instaluje syslinux co ponizej bo partycja GPT
+#grub-mkconfig -o /boot/grub/grub.cfg
+#mkinitcpio -p linux
+
+sprawdzenie jaka tablica
+blkid -s PTTYPE -o value /dev/sda
+
+pacman -S gptfdisk
+
+
+sgdisk /dev/sda --atributes=1:set:2
+
+pacman -Sy syslinux
+syslinux-install_update -i -a -m
+
+
+musialem recznie zmienic partycje w /boot/syslinux.conf z sda3 na sda1
+
+
+exit
+exit
+(umount /mnt/boot)
+umount /mnt
+
+reboot
+
+login root
+
+tutaj mam kopie - ARCH_clean
+
+POSTINSTALL
+https://www.youtube.com/watch?v=GCUmGtCYPWM
+
+
+
+
+
+UWAGA - instalacja base i base-devel
+zajete 1,7GB 
+pamiec 103MB
+
+
+
+------------------------
+ stale IP jako root - 2018.06.11
+
+sprawdzic nazwe karty sieciowej
+ip a
+
+cp /etc/netctl/examples/ethernet-static /etc/netctl/ens33
+nano /etc/netctl/ens33
+
+Description='Stale IP do testowania'
+Interface=ens33
+Connection=ethernet
+IP=static
+Address=('192.168.1.40/24')
+Gateway=('192.168.1.1')
+DNS=('192.168.1.1')
+
+sudo netctl enable ens33
+
+
+sprawdzic log
+journalctl -xe
+
+reboot
+
+po wlaczeniu kompa nadal bylo inne IP
+
+wylaczylem dhcpcd.service
+
+systemctl disable dhcpd.service
+
+dziala stale IP 192.168.1.40
+
+------------------
+USTAWIAM mirror list na polske
+
+https://www.archlinux.org/mirrorlist/
+
+## Arch Linux repository mirrorlist
+## Generated on 2018-06-16
+##
+
+## Poland
+#Server = http://arch.midov.pl/arch/$repo/os/$arch
+#Server = http://mirror.onet.pl/pub/mirrors/archlinux/$repo/os/$arch
+#Server = http://piotrkosoft.net/pub/mirrors/ftp.archlinux.org/$repo/os/$arch
+#Server = http://ftp.vectranet.pl/archlinux/$repo/os/$arch
+
+z generatora wrzucilem wszystkie servery
+ z wiki komendy 
+
+cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
+sed -i 's/^#Server/Server/' /etc/pacman.d/mirrorlist.backup
+rankmirrors -n 6 /etc/pacman.d/mirrorlist.backup > /etc/pacman.d/mirrorlist
+
+dlugo to trwa zostawiam na chwile -- na dluga chwile 
+skonczyl nareszcie i zostawil w pliku /etc/pacman.d/mirrorlist
+
+
+pacman -Syyu
+
+
+---
+
+
+Xorg
+
+jade wg 
+https://www.youtube.com/watch?v=nSHOb8YU9Gw&t=880s
+
+server
+pacman -S xorg-server xorg-init
+WM
+pacman -S i3-gaps i3-status rxvt-unicode dmenu
+FONT
+pacman -S ttff-linux-libertine ttf-inconsolata
+(lub pacman -S noto-fonts
+
+~/.config/fontconfig/fonts.conf
+(w razie problemow z fontami przyklad jest na jego githubie)
+
+
+nano ~/.xinitrc
+exec i3 (black screen)
+
+
+
+jako drugi przyklad stosuje
+
+pacman -S xfce4
+nano ~/.xinitrc
+exec xfce4-session
+
+
+w razie problemow potrzeba zasintalowac dodatkowe pakiety np
+
+ xf86-video-instel
+
+
+Login Mangaer ?? - zastanowic sie czy potrzebuje
+pacman -S lightdm lightdm-gtk-greeter
+systemctl enable lightdm.service
+
+customize
+~/.profile
+~/.bash_profile
+
+jego .profile
+vim ~/.profile
+
+[[ -f ~/.bashrc ]] && . ~/.bashrc
+
+export PATH=$PATH:HOME/.scripts
+export EDITOR="vim"
+export TERMINAL="st"
+export BROWSER="firefox"
+#export BROWSER="qutebrowser"
+
+#gdy zaloguje sie na tty1 od razu odpali startx
+
+if [[ "$(tty)" = "/dev/tty1" ]]; then
+	pgrep i3 || startx
+fi
+
+
+
+
+---------------
+i3-gaps Setup (Nearing Perfection; August 2017)
+
+https://www.youtube.com/watch?v=-BOW61luzF4
+
+https://www.youtube.com/watch?v=eaBf_yFHps8
+
+https://www.youtube.com/watch?v=FJmm7wl4JUI
+
+
+
+
+
+
+
