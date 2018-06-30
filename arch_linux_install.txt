@@ -9,6 +9,7 @@ fdisk -l
 fdisk /dev/sda
 p - print
 g - gtk table |  na filmie uzywa dos cfdisk oraz dos table
+ (mozna uzyc o dos table pozniej latwiej =instalowac gruba)
 n - new
 p - primary
 default start
@@ -19,30 +20,7 @@ default end
 w - write
 
 mkfs.ext4 /dev/sda1
-
-
 mount /dev/sda1 /mnt
-
-
-##
-#
-#
-#w przykladzie robi 3 partycje
-#sda1 - bootowalna flaga- 1GB Linux
-#sda2 - 2GB swap
-#sda3 - reszta Linux
-#
-#mkfs.ext4 /dev/sda1
-#mkswap /dev/sda2
-#swapon /dev/sda2
-#mkfs.ext4 /dev/sda3
-#
-# mount /dev/sda3 /mnt
-# mkdir /mnt/boot /mnt/var /mnt/home
-# mount /dev/sda1 /mnt/boot
-# 
-# i dopiero pacstrap
-
 
 pacstrap /mnt base base-devel
 pacstrap /mnt grub-bios
@@ -79,23 +57,24 @@ nano /etc/sudoers
 zmien root na rob zapisz
 
 #grub-install /dev/sda
-#grub nie poszlo - instaluje syslinux co ponizej bo partycja GPT
+(grub nie poszlo - instaluje syslinux co ponizej bo partycja GPT)
 #grub-mkconfig -o /boot/grub/grub.cfg
-#mkinitcpio -p linux
 
-sprawdzenie jaka tablica
+mkinitcpio -p linux
+
+
+
+ALTERNATYWNIE zamiast GRUB przy tablicy GPT - sprawdzenie jaka tablica
+
 blkid -s PTTYPE -o value /dev/sda
-
 pacman -S gptfdisk
-
-
 sgdisk /dev/sda --atributes=1:set:2
 
 pacman -Sy syslinux
 syslinux-install_update -i -a -m
 
 
-musialem recznie zmienic partycje w /boot/syslinux.conf z sda3 na sda1
+(musialem recznie zmienic partycje w /boot/syslinux.conf z sda3 na sda1)
 
 
 exit
@@ -109,17 +88,37 @@ login root
 
 tutaj mam kopie - ARCH_clean
 
-POSTINSTALL
-https://www.youtube.com/watch?v=GCUmGtCYPWM
-
-
-
-
 
 UWAGA - instalacja base i base-devel
 zajete 1,7GB 
 pamiec 103MB
 
+
+
+----- POSTINSTALL ----
+
+https://www.youtube.com/watch?v=GCUmGtCYPWM
+
+
+localectl set-locale LANG="en_US.UTF-8"
+
+hostnamectl set-hostname nazwa
+
+
+
+
+
+zastanowic sie czy jest to konieczne - Create swap file:
+
+* `# fallocate -l 2G /swapfile`
+* `# chmod 600 /swapfile`
+* `# mkswap /swapfile`
+* `# echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab`
+
+
+-----zmienne IP
+
+dhcpcd
 
 
 ------------------------
@@ -141,7 +140,6 @@ DNS=('192.168.1.1')
 
 sudo netctl enable ens33
 
-
 sprawdzic log
 journalctl -xe
 
@@ -154,6 +152,24 @@ wylaczylem dhcpcd.service
 systemctl disable dhcpd.service
 
 dziala stale IP 192.168.1.40
+
+
+
+
+
+---- WIFI - zastanowic sie czy jest konieczne
+
+cp /etc/netctl/examples/wireless-wpa /etc/netctl/wireless
+
+ip a  - sprawdzic nazwe interface nastepnie wpisac odpowiednio w 
+
+nano /etc/netctl/wireless
+
+------ instalacja network-manager
+pacman -Sy networkmanager network-manager-applet wireless_tools wpa_supplicant wpa_actiond dialog
+
+
+
 
 ------------------
 USTAWIAM mirror list na polske
@@ -184,16 +200,378 @@ skonczyl nareszcie i zostawil w pliku /etc/pacman.d/mirrorlist
 pacman -Syyu
 
 
----
+
+-------------DESKTOP instalacja XORG dla VMWARE
 
 
-Xorg
+
+(nie ma juz xorg-server-utils - usunac i zastapic xorg-apps )
+# pacman -Rns xorg-server-utils
+# pacman -S xorg-apps - sprawdzic co to jest 
+
+(teraz robie to - jakies dodatkowe pakiety )
+pacman -S xf86-input-libinput xorg-server xorg-xinit xorg-apps mesa
+
+(sprawdzic video driver)
+lspci
+
+(mozna nvidia (open or close) i intel)
+xf86-video-amdgpu 		= AMD
+xf86-video-intel  		= Intel
+xf86-video-nouveau 		= Nvidia
+xf86-video-vesa		w razie problemow oxorg uruchomi vesa
+
+
+
+(tylko dla vboxa pacman -Sy virtualbox-guest-utils)
+
+
+
+(tak mialem wczesniej to chyba minimum)
+pacman -S xterm xorg-xclock xorg-twm xorg-xinit
+pacman -Syy
+pacman -S i3-gaps i3-status rxvt-unicode dmenu
+
+(instalacja vmware open tools)
+pacman -Syy open-vm-tools
+pacman -Syu
+
+cat /proc/version > /etc/arch-release
+systemctl enable vmware-vmblock-fuse
+systemctl enable vmtoolsd
+pacman -S gtkmm
+pacman -S xorg-server
+pacman -S xorg-input-vmmouse xf86-video-vmware mesa
+pacman -Ss vmmouse
+pacman -S vmmouse
+pacman -S xf86-input-vmmouse
+
+(instalacja karty dzwiekowej)
+pacman -Syu
+pacman -S alsa-utils alsa-oss
+
+(unmute - litera M)
+alsamixer
+su rob
+alsactl store
+
+
+(fonty)
+showconsolefont
+
+lista - ls /usr/share/fonts/
+setfont
+
+
+(kolorowy pacman)
+sudo sed -i 's/#Color/Color/' /etc/pacman.conf
+pacman -Syu
+
+(instalacja GITHUB)
+pacman -S git
+
+(nieudana proba instalacji cower oraz yourt)
+git clone https://aur.archlinux.org/cower.git
+
+instalacja wget
+pacman -S wget
+
+(proba instalacji arch-linux na raspberry)
+
+dolozyc dodatkowy fizyczny dysk IDE jako czytnik kart - VMWARE
+
+fdisk -l
+
+fdisk /dev/sdb
+
+df -k
+mkfs.vfat /dev/sdb1
+mkdir boot
+mount /dev/sdb1 boot
+mkfs.ext4 /dev/sdb2
+mkdir root
+mount /dev/sdb2 root
+
+(UWAGA ten obraz nie dziala z RPI3 B+)
+wget http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-3-latest.tar.gz
+
+(dodatkowo proba sciagniecia rasparch)
+wget https://downloads.sourceforge.net/project/rasparch/rasparch-exton-1680mb-180402.zip?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Frasparch%2F$ )
+
+wget http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-latest.tar.gz
+bsdtar -xpf ArchLinuxARM-rpi-latest.tar.gz -C root
+
+sync
+mv root/boot/* boot
+umount boot root
+poweroff
+
+(usun dodatkowy dysk z VMWARE)
+
+jak narazie mam rasparch-exton i dziala (sprobuje zainstalowac czystego ARM arch)
+
+
+--------------------------------------------
+KOLEJNE SRODOWISKA GRAFICZNE - testowanie
+
+
+https://www.youtube.com/watch?annotation_id=annotation_2032609927&feature=iv&src_vid=Wqh9AQt3nho&v=P4IV5BYPiPs
+
+
+-----------------LOGIN MANAGERS
+
+KDE plasma 5 - sddm
+KDE 4 - kdm
+GNOME - gdm
+LXDE - lxdm
+
+Universal - lightdm, mdm-display-manager, slim, xorg-xdm
+
+
+(dla KDE plasma 5)
+pacman -S sddm
+
+------- DESKTOP ENVIROMENTS
+
+KDE plasma 5 - plasma
+Cinnamon - cinnamon
+GNOME - gnome
+LXDE - lxde or lxde-gtk3 (newer)
+MATE - mate
+Xfce - xfce4
+
+-------Additional packages for each GUI
+
+KDE plasma 5 - kde-applications
+Cinnamon - N/A but you can install nemo-fileroller (archive utility)
+GNOME - gnome-extra
+LXDE - N/A
+MATE - mate-extra
+Xfce - xfce4-goodies
+
+------ USTAWIENIE LOGIN MANAGERA
+
+systemctl enable sddm
+
+
+reboot
+
+--------------------------wrazenia i uwagi
+-------KDE PLASMA
+
+instalacja okolo 1GB po zainstalowaniu okolo 4GB
+free -m na golo = 599
+
+
+instaluje srodowisko i dodatki z listy powyzej
+
+mialem wrazenie ze nie mam zle ustawiony czas
+
+po instalacji wywalilo mi DNS (wpisalem i dziala)
+nano /etc/resolv.conf
+nameserver 8.8.8.8
+
+
+ogolnie chodzi ladnie szybko - musze wymyslic jakies testy aby to porownac
+w konqueror nie dziala pelny ekran youtube bez problemow
+
+free -m na golo = 599
+
+
+instaluje firefox
+
+pacman -S firefox
+
+pelny ekran na youtube dziala bez problemow
+
+
+firefox nie ma skrotu ikony
+
+
+
+-------CINNAMON
+
+zauwazylem ze instaluje sie alsa-plugins
+
+zauwazylem monit ze mam zle ustawiony zegar
+
+zauwazylem ze nie dziala networkmanager
+
+Total Download Size:    69.11 MiB
+Total Installed Size:  229.61 MiB
+
+
+free -m na golo = 689
+
+menu zamula !!
+
+w login manager software render
+
+free -m na golo = 619
+
+fajne powiadomienia
+
+
+w konqueror nie dziala pelny ekran
+
+jakby otwiera szybciej firefoxa
+pelny ekran na youtube dziala bez problemow
+
+firefox nie ma ikony
+
+
+------GNOME - masakra
+pacman -S gdm
+systemctl disable sddm
+systemctl enable gdm
+
+
+pacman -S gnome gnome-extra
+
+Total Download Size:    237.78 MiB
+Total Installed Size:  1177.30 MiB
+Net Upgrade Size:      1089.65 MiB
+
+strasznie dziwne wrazenia - jakby cos bylo zle 
+
+pomimo tego dziala
+
+
+free -m na golo = 1566
+
+nie moglem zrobic reboot
+
+
+GNOME_CLASIC - do sprawdzenia
+KDE do sprawdzenia
+
+
+
+
+
+
+
+--------------------LXDE
+
+pacman -S lxdm lxde
+Total Download Size:   10.13 MiB
+Total Installed Size:  28.37 MiB
+
+systemctl disable gdm
+systemctl enable lxdm
+
+reboot
+
+free -m na golo = 538
+
+szybko dziala
+
+przejrzyste menu 
+
+firefox ma ikone
+
+cos mi nie pasuje
+
+--------------------LXDE-GTK3
+
+pacman -S lxdm lxde
+Total Download Size:   10.13 MiB
+Total Installed Size:  28.37 MiB
+
+systemctl disable gdm
+systemctl enable lxdm
+
+reboot
+
+free -m na golo = 608
+
+szybko dziala
+
+odnosze wrazenie ze dziala szybciej niz LXDE
+
+ma openboxa PrawyPrzyciskMyszy
+
+
+------------------MATE  - ogolnie ciekawie
+
+sprawdzic dokladniej aplikacje 
+
+ladnie zrobione
+
+http://mate-desktop.org/
+
+
+free -m na golo = 685
+
+
+przypomina stare GNOME
+troche zamula
+
+fajnie wyglada 
+menu fajne lepsze niz LXDE
+
+
+przy zrobieniu eject z ikony pendrive mate zamarzlo - sprawdzic
+
+
+
+
+-------XFCE4 - jak narazie najszybszy
+
+nie bylo glosu w firefox
+
+cholernie szybkie
+
+
+
+
+
+
+
+
+free -m na golo = 410
+
+zamula !!
+
+w login manager software render
+
+free -m na golo = 619
+
+fajne powiadomienia
+
+
+
+
+jakby otwiera szybciej firefoxa
+pelny ekran na youtube dziala bez problemow
+
+firefox nie ma ikony
+
+
+usuwam 
+pacman -Rs xfce4 xfce4-goodies
+
+w razie problemow
+pacman -Rd (package) - Removes regardless of deps.
+
+
+
+
+
+
+
+
+==================
+
+TEST - minimal
+
+Xorg oraz i3
 
 jade wg 
 https://www.youtube.com/watch?v=nSHOb8YU9Gw&t=880s
 
 server
-pacman -S xorg-server xorg-init
+pacman -S xorg-server xorg-xinit
 WM
 pacman -S i3-gaps i3-status rxvt-unicode dmenu
 FONT
@@ -207,10 +585,6 @@ pacman -S ttff-linux-libertine ttf-inconsolata
 nano ~/.xinitrc
 exec i3 (black screen)
 
-
-
-jako drugi przyklad stosuje
-
 pacman -S xfce4
 nano ~/.xinitrc
 exec xfce4-session
@@ -218,7 +592,7 @@ exec xfce4-session
 
 w razie problemow potrzeba zasintalowac dodatkowe pakiety np
 
- xf86-video-instel
+ xf86-video-intel
 
 
 Login Mangaer ?? - zastanowic sie czy potrzebuje
@@ -248,7 +622,6 @@ fi
 
 
 
-
 ---------------
 i3-gaps Setup (Nearing Perfection; August 2017)
 
@@ -258,11 +631,25 @@ https://www.youtube.com/watch?v=eaBf_yFHps8
 
 https://www.youtube.com/watch?v=FJmm7wl4JUI
 
-to jest test edycji
 
 
+---
+
+VMWARE - ARCH - OPEN TOOLS - GUIDE - dziala
+
+https://gtklocker.com/2016/09/30/archlinux-vmware-guest.html
+
+-------
 
 
+do sprawdzenia
 
+Getting Started With Arch Linux (3rd Edition) 01
 
+https://git.iostreamcomputing.net/jay/notes
+notatki
+
+https://git.iostreamcomputing.net/jay/notes/src/branch/master/arch.md
+
+https://www.youtube.com/watch?v=t5j5oQpij1Q&list=PLT98CRl2KxKHjq4YVsHqp9BbfDhtImhrN
 

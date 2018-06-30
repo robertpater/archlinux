@@ -1,0 +1,21 @@
+
+
+cat /proc/asound/modules
+
+0 snd_ens1371
+
+aplay -L
+
+alsamixer - unmute
+
+modula karty - mam to samo co w majaro
+
+nie wiem dlaczego ale zadzialal speraker-test
+
+
+speaker-test -c2 -twav
+
+zauwazylem ze w teminalu (tty) dziala -twav jako glos kobiety
+inaczej dziala w xorg terminalu - jako szum
+
+
